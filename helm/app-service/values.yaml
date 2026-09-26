@@ -1,0 +1,30 @@
+replicaCount: 1
+
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+containerPort:
+  enabled: true
+  port: 8080
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+config: {}
+
+existingSecret: ""
+
+probes:
+  startup:
+    enabled: false
+  readiness:
+    enabled: false
+  liveness:
+    enabled: false
+
+resources: {}

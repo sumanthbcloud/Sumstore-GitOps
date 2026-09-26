@@ -1,0 +1,46 @@
+replicaCount: 1
+
+image:
+  repository: sumstore/user
+  tag: latest
+  pullPolicy: IfNotPresent
+
+containerPort:
+  enabled: true
+  port: 8080
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+config:
+  USER_SERVER_PORT: "8080"
+  REDIS_HOST: redis
+  MONGO_URL: mongodb://mongodb:27017/users
+
+existingSecret: ""
+
+probes:
+  startup:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 0
+    periodSeconds: 2
+    failureThreshold: 30
+  readiness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

@@ -1,0 +1,34 @@
+replicaCount: 1
+
+image:
+  repository: sumstore/dispatch
+  tag: latest
+  pullPolicy: IfNotPresent
+
+containerPort:
+  enabled: false
+
+service:
+  enabled: false
+
+config:
+  AMQP_HOST: rabbitmq
+  DISPATCH_ERROR_PERCENT: "0"
+
+existingSecret: dispatch-rabbitmq-secret
+
+probes:
+  startup:
+    enabled: false
+  readiness:
+    enabled: false
+  liveness:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

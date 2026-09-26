@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  repository: sumstore/shipping
+  tag: latest
+  pullPolicy: IfNotPresent
+
+containerPort:
+  enabled: true
+  port: 8080
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+config:
+  CART_ENDPOINT: cart:8080
+  DB_HOST: mysql
+
+existingSecret: shipping-db-secret
+
+probes:
+  startup:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 3
+    failureThreshold: 30
+  readiness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi

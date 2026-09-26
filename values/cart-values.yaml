@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  repository: sumstore/cart
+  tag: latest
+  pullPolicy: IfNotPresent
+
+containerPort:
+  enabled: true
+  port: 8080
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+config:
+  REDIS_HOST: redis
+  CATALOGUE_HOST: catalogue
+
+existingSecret: ""
+
+probes:
+  startup:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 0
+    periodSeconds: 2
+    failureThreshold: 15
+  readiness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
