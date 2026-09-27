@@ -1,4 +1,5 @@
 replicaCount: 1
+fullnameOverride: dispatch
 
 image:
   repository: sumstore/dispatch

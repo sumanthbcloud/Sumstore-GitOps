@@ -1,0 +1,96 @@
+# ==============================================================================
+# MySQL 5.7 StatefulSet for SUM Store
+#
+# Secret Contract (mysql-secret):
+#   - MYSQL_ROOT_PASSWORD        : Root administrative password
+#   - MYSQL_DATABASE             : Primary database created on startup (e.g. cities)
+#   - SHIPPING_DB_USER           : Application username for Shipping service (granted on cities.*)
+#   - SHIPPING_DB_PASSWORD       : Application password for Shipping service
+#   - RATINGS_DB_USER            : Application username for Ratings service (granted on ratings.*)
+#   - RATINGS_DB_PASSWORD        : Application password for Ratings service
+#
+# Image Strategy:
+#   Requires the custom MySQL image built from db/mysql/Dockerfile via .github/workflows/ci-mysql.yml.
+#   The image packages 10-dump.sql.gz, 20-ratings.sql, and 30-create-app-users.sh in
+#   /docker-entrypoint-initdb.d/ to safely provision cities and ratings alongside env-driven users.
+#
+# IMPORTANT:
+#   Before Kubernetes deployment, this image must be pinned to the immutable SHA tag
+#   produced and published by the first successful run of ci-mysql.yml on the main branch.
+#   Example: <dockerhub-username>/<repository-prefix>-mysql-db:<git-sha>
+#   Do NOT use :latest in production or automated deployments.
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/component: database
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mysql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mysql
+        app.kubernetes.io/component: database
+    spec:
+      containers:
+        - name: mysql
+          # The image must be pinned to the immutable SHA produced by ci-mysql.yml before Kubernetes deployment.
+          image: REPLACE_WITH_IMMUTABLE_MYSQL_IMAGE_FROM_CI # <dockerhub-username>/<repository-prefix>-mysql-db:<git-sha>
+          ports:
+            - name: mysql
+              containerPort: 3306
+          envFrom:
+            - secretRef:
+                name: mysql-secret
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+                - --silent
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+                - --silent
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-data
+        labels:
+          app.kubernetes.io/name: mysql
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 5Gi

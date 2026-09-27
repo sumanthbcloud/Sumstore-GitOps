@@ -1,4 +1,5 @@
 replicaCount: 1
+fullnameOverride: web
 
 image:
   repository: sumstore/web
@@ -22,8 +23,6 @@ config:
   SHIPPING_HOST: shipping
   PAYMENT_HOST: payment
   RATINGS_HOST: ratings
-
-existingSecret: ""
 
 probes:
   startup:
