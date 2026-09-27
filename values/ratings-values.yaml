@@ -2,7 +2,7 @@ replicaCount: 1
 fullnameOverride: ratings
 image:
   repository: sumanthb9908/sumstore-ratings
-  tag: 528482677190856017504ac93960f5980564c2d0
+  tag: bfb3d255b679578a88bb45c1975628bc98218dca
   pullPolicy: IfNotPresent
 containerPort:
   enabled: true
