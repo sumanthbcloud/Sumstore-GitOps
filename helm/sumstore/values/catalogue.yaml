@@ -1,0 +1,39 @@
+catalogue:
+  replicaCount: 1
+  fullnameOverride: catalogue
+  image:
+    repository: sumanthb9908/sumstore-catalogue
+    tag: 528482677190856017504ac93960f5980564c2d0
+    pullPolicy: IfNotPresent
+  containerPort:
+    enabled: true
+    port: 8080
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  config:
+    CATALOGUE_SERVER_PORT: "8080"
+    MONGO_URL: mongodb://mongodb:27017/catalogue
+  probes:
+    startup:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 0
+      periodSeconds: 2
+      failureThreshold: 30
+    readiness:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    liveness:
+      enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi

@@ -13,7 +13,14 @@ spec:
     path: helm/sumstore
     helm:
       valueFiles:
-        - values.yaml
+        - values/cart.yaml
+        - values/catalogue.yaml
+        - values/dispatch.yaml
+        - values/payment.yaml
+        - values/ratings.yaml
+        - values/shipping.yaml
+        - values/user.yaml
+        - values/web.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: sumstore

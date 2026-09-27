@@ -1,0 +1,41 @@
+payment:
+  replicaCount: 1
+  fullnameOverride: payment
+  image:
+    repository: sumanthb9908/sumstore-payment
+    tag: 528482677190856017504ac93960f5980564c2d0
+    pullPolicy: IfNotPresent
+  containerPort:
+    enabled: true
+    port: 8080
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  config:
+    CART_HOST: cart
+    USER_HOST: user
+    AMQP_HOST: rabbitmq
+  existingSecret: payment-rabbitmq-secret
+  probes:
+    startup:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 0
+      periodSeconds: 2
+      failureThreshold: 15
+    readiness:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    liveness:
+      enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
