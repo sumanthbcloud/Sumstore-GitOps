@@ -1,0 +1,27 @@
+dependencies:
+- name: app-service
+  repository: file://../app-service
+  version: 0.1.0
+- name: app-service
+  repository: file://../app-service
+  version: 0.1.0
+- name: app-service
+  repository: file://../app-service
+  version: 0.1.0
+- name: app-service
+  repository: file://../app-service
+  version: 0.1.0
+- name: app-service
+  repository: file://../app-service
+  version: 0.1.0
+- name: app-service
+  repository: file://../app-service
+  version: 0.1.0
+- name: app-service
+  repository: file://../app-service
+  version: 0.1.0
+- name: app-service
+  repository: file://../app-service
+  version: 0.1.0
+digest: sha256:4570342c7206bdb8ac3043ff22a61fe08c643ad6c49327982e452de3cbf18c43
+generated: "2026-09-27T14:06:25.043732-05:00"

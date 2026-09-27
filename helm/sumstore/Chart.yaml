@@ -1,0 +1,40 @@
+apiVersion: v2
+name: sumstore
+description: Umbrella Helm chart deploying all 8 SUM Store application microservices
+type: application
+version: 0.1.0
+appVersion: "2.1.0"
+
+dependencies:
+  - name: app-service
+    version: 0.1.0
+    repository: "file://../app-service"
+    alias: cart
+  - name: app-service
+    version: 0.1.0
+    repository: "file://../app-service"
+    alias: catalogue
+  - name: app-service
+    version: 0.1.0
+    repository: "file://../app-service"
+    alias: dispatch
+  - name: app-service
+    version: 0.1.0
+    repository: "file://../app-service"
+    alias: payment
+  - name: app-service
+    version: 0.1.0
+    repository: "file://../app-service"
+    alias: ratings
+  - name: app-service
+    version: 0.1.0
+    repository: "file://../app-service"
+    alias: shipping
+  - name: app-service
+    version: 0.1.0
+    repository: "file://../app-service"
+    alias: user
+  - name: app-service
+    version: 0.1.0
+    repository: "file://../app-service"
+    alias: web
