@@ -43,7 +43,7 @@ spec:
       containers:
         - name: mysql
           # The image must be pinned to the immutable SHA produced by ci-mysql.yml before Kubernetes deployment.
-          image: REPLACE_WITH_IMMUTABLE_MYSQL_IMAGE_FROM_CI # <dockerhub-username>/<repository-prefix>-mysql-db:<git-sha>
+          image: sumanthb9908/sumstore-mysql-db:270644d2b7ae76477d7d518a065da03c2d6ef0d9
           ports:
             - name: mysql
               containerPort: 3306
