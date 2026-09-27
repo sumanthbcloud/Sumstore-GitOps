@@ -1,21 +1,17 @@
 replicaCount: 1
 fullnameOverride: web
-
 image:
-  repository: sumstore/web
-  tag: latest
+  repository: sumanthb9908/sumstore-web
+  tag: b6b22d04f985ab404f5bdb7914d794604dd02618
   pullPolicy: IfNotPresent
-
 containerPort:
   enabled: true
   port: 8080
-
 service:
   enabled: true
   type: ClusterIP
   port: 8080
   targetPort: 8080
-
 config:
   CATALOGUE_HOST: catalogue
   USER_HOST: user
@@ -23,7 +19,6 @@ config:
   SHIPPING_HOST: shipping
   PAYMENT_HOST: payment
   RATINGS_HOST: ratings
-
 probes:
   startup:
     enabled: false
@@ -37,7 +32,6 @@ probes:
     path: /
     initialDelaySeconds: 10
     periodSeconds: 10
-
 resources:
   requests:
     cpu: 50m
