@@ -1,28 +1,22 @@
 replicaCount: 1
 fullnameOverride: ratings
-
 image:
-  repository: sumstore/ratings
-  tag: latest
+  repository: sumanthb9908/sumstore-ratings
+  tag: 528482677190856017504ac93960f5980564c2d0
   pullPolicy: IfNotPresent
-
 containerPort:
   enabled: true
   port: 8080
-
 service:
   enabled: true
   type: ClusterIP
   port: 8080
   targetPort: 8080
-
 config:
   APP_ENV: prod
   CATALOGUE_URL: http://catalogue:8080
   PDO_URL: "mysql:host=mysql;dbname=ratings;charset=utf8mb4"
-
 existingSecret: ratings-db-secret
-
 probes:
   startup:
     enabled: true
@@ -37,7 +31,6 @@ probes:
     periodSeconds: 10
   liveness:
     enabled: false
-
 resources:
   requests:
     cpu: 50m
