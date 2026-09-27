@@ -2,7 +2,7 @@ replicaCount: 1
 fullnameOverride: web
 image:
   repository: sumanthb9908/sumstore-web
-  tag: b6b22d04f985ab404f5bdb7914d794604dd02618
+  tag: 528482677190856017504ac93960f5980564c2d0
   pullPolicy: IfNotPresent
 containerPort:
   enabled: true
