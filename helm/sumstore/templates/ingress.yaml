@@ -12,11 +12,65 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-path: /
     alb.ingress.kubernetes.io/success-codes: 200-399
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/transforms.cart: >
+      [{"type":"url-rewrite","urlRewriteConfig":{"rewrites":[{"regex":"^/api/cart/?(.*)$","replace":"/$1"}]}}]
+    alb.ingress.kubernetes.io/transforms.catalogue: >
+      [{"type":"url-rewrite","urlRewriteConfig":{"rewrites":[{"regex":"^/api/catalogue/?(.*)$","replace":"/$1"}]}}]
+    alb.ingress.kubernetes.io/transforms.payment: >
+      [{"type":"url-rewrite","urlRewriteConfig":{"rewrites":[{"regex":"^/api/payment/?(.*)$","replace":"/$1"}]}}]
+    alb.ingress.kubernetes.io/transforms.ratings: >
+      [{"type":"url-rewrite","urlRewriteConfig":{"rewrites":[{"regex":"^/api/ratings/?(.*)$","replace":"/$1"}]}}]
+    alb.ingress.kubernetes.io/transforms.shipping: >
+      [{"type":"url-rewrite","urlRewriteConfig":{"rewrites":[{"regex":"^/api/shipping/?(.*)$","replace":"/$1"}]}}]
+    alb.ingress.kubernetes.io/transforms.user: >
+      [{"type":"url-rewrite","urlRewriteConfig":{"rewrites":[{"regex":"^/api/user/?(.*)$","replace":"/$1"}]}}]
 spec:
   ingressClassName: alb
   rules:
     - http:
         paths:
+          - path: /api/cart
+            pathType: Prefix
+            backend:
+              service:
+                name: cart
+                port:
+                  number: 8080
+          - path: /api/catalogue
+            pathType: Prefix
+            backend:
+              service:
+                name: catalogue
+                port:
+                  number: 8080
+          - path: /api/payment
+            pathType: Prefix
+            backend:
+              service:
+                name: payment
+                port:
+                  number: 8080
+          - path: /api/ratings
+            pathType: Prefix
+            backend:
+              service:
+                name: ratings
+                port:
+                  number: 8080
+          - path: /api/shipping
+            pathType: Prefix
+            backend:
+              service:
+                name: shipping
+                port:
+                  number: 8080
+          - path: /api/user
+            pathType: Prefix
+            backend:
+              service:
+                name: user
+                port:
+                  number: 8080
           - path: /
             pathType: Prefix
             backend:
