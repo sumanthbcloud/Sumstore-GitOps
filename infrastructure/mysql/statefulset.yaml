@@ -40,6 +40,19 @@ spec:
         app.kubernetes.io/name: mysql
         app.kubernetes.io/component: database
     spec:
+      initContainers:
+        - name: init-mysql-volume
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /mnt/data/mysql
+              chown -R 999:999 /mnt/data/mysql
+              chmod 750 /mnt/data/mysql
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /mnt/data
       containers:
         - name: mysql
           # The image must be pinned to the immutable SHA produced by ci-mysql.yml before Kubernetes deployment.
@@ -53,6 +66,7 @@ spec:
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
+              subPath: mysql
           readinessProbe:
             exec:
               command:
