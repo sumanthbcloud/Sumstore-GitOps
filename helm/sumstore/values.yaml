@@ -42,7 +42,6 @@ cart:
     limits:
       cpu: 200m
       memory: 128Mi
-
 catalogue:
   replicaCount: 1
   fullnameOverride: catalogue
@@ -82,7 +81,6 @@ catalogue:
     limits:
       cpu: 200m
       memory: 128Mi
-
 dispatch:
   replicaCount: 1
   fullnameOverride: dispatch
@@ -112,7 +110,6 @@ dispatch:
     limits:
       cpu: 200m
       memory: 128Mi
-
 payment:
   replicaCount: 1
   fullnameOverride: payment
@@ -154,7 +151,6 @@ payment:
     limits:
       cpu: 200m
       memory: 128Mi
-
 ratings:
   replicaCount: 1
   fullnameOverride: ratings
@@ -196,7 +192,6 @@ ratings:
     limits:
       cpu: 200m
       memory: 128Mi
-
 shipping:
   replicaCount: 1
   fullnameOverride: shipping
@@ -237,7 +232,6 @@ shipping:
     limits:
       cpu: 500m
       memory: 1Gi
-
 user:
   replicaCount: 1
   fullnameOverride: user
@@ -278,13 +272,12 @@ user:
     limits:
       cpu: 200m
       memory: 128Mi
-
 web:
   replicaCount: 1
   fullnameOverride: web
   image:
     repository: sumanthb9908/sumstore-web
-    tag: 528482677190856017504ac93960f5980564c2d0
+    tag: 03f1d8e34abd9cbe611db358989aed6242722e76
     pullPolicy: IfNotPresent
   containerPort:
     enabled: true
@@ -321,8 +314,6 @@ web:
     limits:
       cpu: 250m
       memory: 128Mi
-
-
 # ==============================================================================
 # Ingress Configuration (AWS ALB Controller)
 # ==============================================================================
