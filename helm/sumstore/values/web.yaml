@@ -3,7 +3,7 @@ web:
   fullnameOverride: web
   image:
     repository: sumanthb9908/sumstore-web
-    tag: 3dc5a8ecf6199fc224ad626b1be6cbbd468fa4f6
+    tag: 3a9a34dc0295b7f94b87656082285629971007a0
     pullPolicy: IfNotPresent
   containerPort:
     enabled: true
