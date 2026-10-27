@@ -1,116 +1,83 @@
-# Sumstore-GitOps — Kubernetes & ArgoCD Continuous Delivery
+# Sumstore-GitOps — Enterprise GitOps Platform
 
-This repository is the single source of truth for all Kubernetes resources, Helm charts, and continuous delivery configurations powering **SUM Store** on Amazon EKS. 
+This repository is the single source of truth for the desired state of all SUM Store microservices and platform infrastructure running on Kubernetes.
 
-Using **ArgoCD** and declarative GitOps workflows, any commit merged to this repository automatically reconciles live cluster state with desired state—giving us auditable, zero-downtime, and drift-free releases.
-
----
-
-## What Lives Here
-
-- **ArgoCD Applications (`argocd/`)**: Declarative Application and ApplicationSet definitions watching this repository for automated sync, auto-prune, and self-healing.
-- **Helm Charts (`helm/`)**: Packaged microservices definitions with parameterized `values.yaml` files for each component (`catalogue`, `cart`, `shipping`, `payment`, `user`, `ratings`, `dispatch`, `web`).
-- **Cluster Infrastructure & Add-ons (`infrastructure/`)**: Cluster-wide components including AWS Load Balancer Controller, metrics-server, Ingress rules, and storage classes.
+Using **Argo CD** and an enterprise service-oriented **ApplicationSet** pattern, workloads consume the centralized platform Helm OCI chart and decouple service deployments into independent sync, health, and rollback boundaries.
 
 ---
 
-## How Our GitOps Pipeline Works
+## Architecture & Ownership Boundaries
 
-```
-  +--------------------+        +---------------------+
-  |   Developer Git    | ---->  |   Sumstore-GitOps   |
-  |  Commit & Review   |        |   (This Repository) |
-  +--------------------+        +----------+----------+
-                                           |
-                                      Watches repo
-                                           |
-                                           v
-                               +-----------------------+
-                               |     ArgoCD Engine     |
-                               | (Reconciliation Loop) |
-                               +-----------+-----------+
-                                           |
-                             Applies manifests & detects drift
-                                           |
-                                           v
-                               +-----------------------+
-                               |    Amazon EKS Cluster |
-                               |   (Workloads & Pods)  |
-                               +-----------------------+
-```
+The SUM Store engineering ecosystem enforces strict separation of responsibilities across specialized repositories:
 
-1. **Code Merge**: A code change or image tag update is committed to this repository.
-2. **Reconciliation**: ArgoCD's controller picks up the Git webhook or poll event and detects differences between Git and the live cluster state.
-3. **Automated Sync**: ArgoCD applies the changes, rolls out updated pods, and validates health checks. If an ad-hoc change is made directly in the cluster, ArgoCD automatically self-heals back to the Git definition.
+1. **Application Source (`E-commerce-B2C`)**:
+   - Owns application logic, Dockerfiles, unit tests, and source code.
+   - Produces immutable container images tagged with the exact Git commit SHA.
+2. **Platform Workflows (`Sumstore-Platform-Workflows`)**:
+   - Owns reusable CI Golden Path pipelines (secret scanning, testing, container builds, Trivy vulnerability gating, AWS OIDC, ECR publishing).
+   - Updates target image tags in GitOps upon successful CI completion.
+3. **Platform Charts (`Sumstore-Platform-Charts`)**:
+   - Owns the centralized `microservice` Helm chart, schema validation contracts (`values.schema.json`), and OCI publication to Amazon ECR.
+   - Releases immutable semantic versions (`x.y.z`).
+4. **GitOps Repository (`Sumstore-GitOps`) [This Repository]**:
+   - Owns desired state: service configuration parameters, replica sizing, environment variables, resource allocations, and Argo CD management.
+   - Pins the platform chart version and tracks the latest validated image commit SHA.
+5. **Infrastructure (`Shop-Infrastructure`)**:
+   - Owns AWS foundational resources: VPC, subnets, EKS clusters, node groups, and cloud IAM roles.
+
+---
+
+## Two Independent Version Dimensions
+
+A core architectural principle of this platform is the decoupling of application code from deployment mechanics:
+
+| Dimension | Managed By | Version Format | Lifecycle & Purpose |
+|---|---|---|---|
+| **Image Version** | Application CI (`E-commerce-B2C`) | **Immutable Git SHA** (`<commit-sha>`) | Updated frequently per service upon code merges. Identifies the exact application binary/container artifact. |
+| **Chart Version** | Platform Engineering (`Sumstore-Platform-Charts`) | **Pinned SemVer** (`1.0.0`) | Updated deliberately across services when Kubernetes deployment contracts, schema rules, or platform templates evolve. |
 
 ---
 
 ## Repository Structure
 
 ```
-├── argocd/                   # ArgoCD root Application & app manifests
-│   ├── root-application.yaml # App-of-apps pattern orchestrating all services
-│   └── apps/                 # Individual microservice ArgoCD application specs
-├── helm/                     # Helm chart definitions
-│   └── sumstore/             # Core multi-service chart
-│       ├── Chart.yaml        # Chart metadata and versioning
-│       ├── values.yaml       # Default service configurations, replicas, resources
-│       └── templates/        # Deployments, Services, ConfigMaps, and Secrets
-└── infrastructure/           # Essential cluster add-ons and networking
-    ├── alb-ingress.yaml      # AWS ALB Ingress configurations
-    └── aws-load-balancer/    # AWS LBC service account & Helm values
+├── applicationsets/
+│   └── workloads.yaml             # ApplicationSet generating 8 isolated microservice Applications
+├── apps/                          # Per-service values contracts consumed via multiple-sources
+│   ├── cart/values.yaml
+│   ├── catalogue/values.yaml
+│   ├── dispatch/values.yaml
+│   ├── payment/values.yaml
+│   ├── ratings/values.yaml
+│   ├── shipping/values.yaml
+│   ├── user/values.yaml
+│   └── web/values.yaml
+├── argocd/
+│   └── project.yaml               # AppProject defining source/destination governance
+└── platform/
+    ├── networking/
+    │   └── ingress/
+    │       └── ingress.yaml       # Shared AWS ALB Ingress with routing transforms
+    └── data/                      # Stateful backend datastores & storage classes
+        ├── mongodb/
+        ├── mysql/
+        ├── rabbitmq/
+        ├── redis/
+        └── storageclass.yaml
 ```
 
 ---
 
-## Deploying & Syncing with ArgoCD
+## Argo CD ApplicationSet Model
 
-### 1. Prerequisites
-- Access to the target Amazon EKS cluster (provisioned via [Shop-Infrastructure](https://github.com/sumanthbcloud/Shop-Infrastructure))
-- `kubectl` and `helm` installed locally
-- ArgoCD running on the cluster (under the `argocd` namespace)
+Workloads are deployed via `applicationsets/workloads.yaml` using Argo CD **multiple sources**:
+1. **Source 1 (Platform Chart)**:
+   - Registry: `961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts`
+   - Chart: `microservice`
+   - Target Revision: `1.0.0`
+2. **Source 2 (GitOps Values)**:
+   - Repo: `https://github.com/sumanthbcloud/Sumstore-GitOps.git`
+   - Target Revision: `main`
+   - Path: `$values/apps/{{service}}/values.yaml`
 
-### 2. Connect to ArgoCD
-Forward the ArgoCD UI locally:
-```shell
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
-Login via CLI or browser (`https://localhost:8080`) using the admin credentials:
-```shell
-argocd admin initial-password -n argocd
-```
-
-### 3. Bootstrap Application Delivery
-Deploy the root application (App-of-Apps) to initiate syncing:
-
-```shell
-kubectl apply -f argocd/root-application.yaml
-```
-
-ArgoCD will discover all child applications and begin reconciling them against the cluster.
-
-### 4. Monitor Sync Status
-Check the status of deployed components:
-```shell
-argocd app list
-```
-
-Or sync an individual service manually:
-```shell
-argocd app sync sumstore-catalogue
-```
-
----
-
-## Managing Updates & Rollouts
-
-- **Updating Container Images**: To deploy a new version of any microservice, update the corresponding `image.tag` inside `helm/sumstore/values.yaml` and push to main. ArgoCD handles the rolling deployment.
-- **Scaling Services**: Adjust `replicaCount` or horizontal pod autoscaler thresholds in `values.yaml`.
-- **Environment Ingress**: Route rules and TLS termination points are configured declaratively in `infrastructure/alb-ingress.yaml`.
-
----
-
-## Related Repositories
-
-- **[E-commerce-B2C](https://github.com/sumanthbcloud/E-commerce-B2C)** — Application source code, microservice implementations, container builds, and local development.
-- **[Shop-Infrastructure](https://github.com/sumanthbcloud/Shop-Infrastructure)** — Terraform code provisioning the VPC, EKS cluster, node groups, and AWS IAM roles.
+This generates 8 independent Argo CD applications (`cart`, `catalogue`, `user`, `shipping`, `payment`, `ratings`, `dispatch`, `web`), each providing isolated deployment failure domains, individual automated sync policies (`selfHeal: true`, `prune: true`), and independent rollbacks.

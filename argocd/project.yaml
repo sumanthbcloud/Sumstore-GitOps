@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: sumstore
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: sumstore
+spec:
+  description: Argo CD Project for SUM Store microservices and platform workloads
+  sourceRepos:
+    - 'https://github.com/sumanthbcloud/Sumstore-GitOps.git'
+    - '961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts'
+  destinations:
+    - namespace: sumstore
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

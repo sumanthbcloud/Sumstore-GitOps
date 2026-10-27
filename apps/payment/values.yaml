@@ -1,0 +1,40 @@
+replicaCount: 1
+fullnameOverride: payment
+image:
+  repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/payment
+  tag: 62832d2262d05e138dfb6c64b55e8add8d50475e
+  pullPolicy: IfNotPresent
+containerPort:
+  enabled: true
+  port: 8080
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+config:
+  CART_HOST: cart
+  USER_HOST: user
+  AMQP_HOST: rabbitmq
+existingSecret: payment-rabbitmq-secret
+probes:
+  startup:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 0
+    periodSeconds: 2
+    failureThreshold: 15
+  readiness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    enabled: false
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

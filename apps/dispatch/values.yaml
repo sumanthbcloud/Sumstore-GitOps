@@ -1,0 +1,28 @@
+replicaCount: 1
+fullnameOverride: dispatch
+image:
+  repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/dispatch
+  tag: bab6744904693e605929250edec7da307146a2ea
+  pullPolicy: IfNotPresent
+containerPort:
+  enabled: false
+service:
+  enabled: false
+config:
+  AMQP_HOST: rabbitmq
+  DISPATCH_ERROR_PERCENT: "0"
+existingSecret: dispatch-rabbitmq-secret
+probes:
+  startup:
+    enabled: false
+  readiness:
+    enabled: false
+  liveness:
+    enabled: false
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

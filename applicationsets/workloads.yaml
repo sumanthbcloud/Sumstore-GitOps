@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: sumstore-workloads
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: sumstore
+spec:
+  generators:
+    - list:
+        elements:
+          - service: cart
+          - service: catalogue
+          - service: user
+          - service: shipping
+          - service: payment
+          - service: ratings
+          - service: dispatch
+          - service: web
+  template:
+    metadata:
+      name: "{{service}}"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: "{{service}}"
+        app.kubernetes.io/part-of: sumstore
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: sumstore
+      sources:
+        - repoURL: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts
+          chart: microservice
+          targetRevision: 1.0.0
+          helm:
+            releaseName: "{{service}}"
+            valueFiles:
+              - $values/apps/{{service}}/values.yaml
+        - repoURL: https://github.com/sumanthbcloud/Sumstore-GitOps.git
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: sumstore
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
