@@ -3,7 +3,7 @@ cart:
   fullnameOverride: cart
   image:
     repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/cart
-    tag: 84ac9a389a7f14a33c16fa13480d71df9f21a71c
+    tag: 169118b32e9aea6ea6ad2ae6f6c36d9b7e89a528
     pullPolicy: IfNotPresent
   containerPort:
     enabled: true
