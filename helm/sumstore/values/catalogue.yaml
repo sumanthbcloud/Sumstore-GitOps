@@ -2,8 +2,8 @@ catalogue:
   replicaCount: 1
   fullnameOverride: catalogue
   image:
-    repository: sumanthb9908/sumstore-catalogue
-    tag: 528482677190856017504ac93960f5980564c2d0
+    repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/catalogue
+    tag: 0857b3f1e3f51429eccfb889a37a53dff4236a5c
     pullPolicy: IfNotPresent
   containerPort:
     enabled: true
