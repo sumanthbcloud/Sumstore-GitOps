@@ -2,8 +2,8 @@ cart:
   replicaCount: 1
   fullnameOverride: cart
   image:
-    repository: sumanthb9908/sumstore-cart
-    tag: 528482677190856017504ac93960f5980564c2d0
+    repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/cart
+    tag: 84ac9a389a7f14a33c16fa13480d71df9f21a71c
     pullPolicy: IfNotPresent
   containerPort:
     enabled: true
