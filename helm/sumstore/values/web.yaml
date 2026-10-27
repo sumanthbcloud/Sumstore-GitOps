@@ -2,8 +2,8 @@ web:
   replicaCount: 1
   fullnameOverride: web
   image:
-    repository: sumanthb9908/sumstore-web
-    tag: 3a9a34dc0295b7f94b87656082285629971007a0
+    repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/web
+    tag: c439cc37b84709c8e2b21dc50ae804cf349a53c9
     pullPolicy: IfNotPresent
   containerPort:
     enabled: true
