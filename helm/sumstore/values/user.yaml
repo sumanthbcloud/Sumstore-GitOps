@@ -2,8 +2,8 @@ user:
   replicaCount: 1
   fullnameOverride: user
   image:
-    repository: sumanthb9908/sumstore-user
-    tag: 528482677190856017504ac93960f5980564c2d0
+    repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/user
+    tag: 663e25478ee405396291db1512871da528c41d39
     pullPolicy: IfNotPresent
   containerPort:
     enabled: true
