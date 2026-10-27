@@ -2,8 +2,8 @@ dispatch:
   replicaCount: 1
   fullnameOverride: dispatch
   image:
-    repository: sumanthb9908/sumstore-dispatch
-    tag: 528482677190856017504ac93960f5980564c2d0
+    repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/dispatch
+    tag: bab6744904693e605929250edec7da307146a2ea
     pullPolicy: IfNotPresent
   containerPort:
     enabled: false
