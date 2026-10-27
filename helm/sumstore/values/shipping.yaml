@@ -3,7 +3,7 @@ shipping:
   fullnameOverride: shipping
   image:
     repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/shipping
-    tag: 62832d2262d05e138dfb6c64b55e8add8d50475e
+    tag: dc2757e52273f42695b3eaf271570fe1f0cebb22
     pullPolicy: IfNotPresent
   containerPort:
     enabled: true
