@@ -2,8 +2,8 @@ shipping:
   replicaCount: 1
   fullnameOverride: shipping
   image:
-    repository: sumanthb9908/sumstore-shipping
-    tag: 528482677190856017504ac93960f5980564c2d0
+    repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/shipping
+    tag: 7a5a1800499841574a57d8488e2f85f5660fe230
     pullPolicy: IfNotPresent
   containerPort:
     enabled: true
