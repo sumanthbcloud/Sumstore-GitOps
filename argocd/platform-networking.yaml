@@ -13,7 +13,7 @@ spec:
   source:
     repoURL: https://github.com/sumanthbcloud/Sumstore-GitOps.git
     targetRevision: main
-    path: platform/networking/ingress
+    path: platform/networking
   destination:
     server: https://kubernetes.default.svc
     namespace: sumstore

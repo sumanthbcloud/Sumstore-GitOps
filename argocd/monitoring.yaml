@@ -23,6 +23,9 @@ spec:
       ref: values
     - repoURL: https://github.com/sumanthbcloud/Sumstore-GitOps.git
       targetRevision: main
+      path: platform/monitoring/services
+    - repoURL: https://github.com/sumanthbcloud/Sumstore-GitOps.git
+      targetRevision: main
       path: platform/monitoring/servicemonitors
     - repoURL: https://github.com/sumanthbcloud/Sumstore-GitOps.git
       targetRevision: main

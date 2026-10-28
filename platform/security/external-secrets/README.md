@@ -99,7 +99,7 @@ platform/security/external-secrets/
 ├── ecr-token-generator.yaml           # ECRAuthorizationToken generator for Amazon ECR
 ├── scripts/
 │   └── bootstrap-secrets.sh           # Safe offline/post-EKS credential population script
-└── externalsecrets/
+└── secrets/
     ├── argocd-ecr-repo.yaml           # ExternalSecret generating repo-sumstore-charts in argocd namespace
     ├── mysql.yaml                     # ExternalSecret generating mysql-secret
     ├── shipping-db.yaml               # ExternalSecret generating shipping-db-secret

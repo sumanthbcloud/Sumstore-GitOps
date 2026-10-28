@@ -52,18 +52,40 @@ A core architectural principle of this platform is the decoupling of application
 │   ├── shipping/values.yaml
 │   ├── user/values.yaml
 │   └── web/values.yaml
-├── argocd/
-│   └── project.yaml               # AppProject defining source/destination governance
+├── argocd/                        # Root Argo CD Applications and project governance
+│   ├── monitoring.yaml
+│   ├── platform-data.yaml
+│   ├── platform-networking.yaml
+│   ├── platform-security.yaml
+│   └── project.yaml
 └── platform/
-    ├── networking/
-    │   └── ingress/
-    │       └── ingress.yaml       # Shared AWS ALB Ingress with routing transforms
-    └── data/                      # Stateful backend datastores & storage classes
-        ├── mongodb/
-        ├── mysql/
-        ├── rabbitmq/
-        ├── redis/
-        └── storageclass.yaml
+    ├── data/                      # Stateful backend datastores & storage classes
+    │   ├── mongodb/
+    │   ├── mysql/
+    │   ├── rabbitmq/
+    │   ├── redis/
+    │   └── storageclass.yaml
+    ├── monitoring/                # Observability stack, alerts, dashboards, and servicemonitors
+    │   ├── alerts/
+    │   ├── dashboards/
+    │   ├── services/
+    │   ├── servicemonitors/
+    │   ├── namespace.yaml
+    │   └── values.yaml
+    ├── networking/                # Gateway API and AWS Application Load Balancer configurations
+    │   ├── gateway.yaml
+    │   ├── gatewayclass.yaml
+    │   ├── httproute-api.yaml
+    │   ├── httproute-web.yaml
+    │   ├── load-balancer-configuration.yaml
+    │   └── target-group-configuration.yaml
+    └── security/                  # External Secrets Operator integrations & secret definitions
+        └── external-secrets/
+            ├── cluster-secret-store.yaml
+            ├── ecr-token-generator.yaml
+            ├── README.md
+            ├── scripts/
+            └── secrets/
 ```
 
 ---
