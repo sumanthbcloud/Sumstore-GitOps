@@ -2,7 +2,7 @@ replicaCount: 1
 fullnameOverride: payment
 image:
   repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/payment
-  tag: c14ef34098879dc863095aec5a578d18ccef1a3e
+  tag: f2ce95d394debc03448a01f257583f86dca6e81f
   pullPolicy: IfNotPresent
 containerPort:
   enabled: true
