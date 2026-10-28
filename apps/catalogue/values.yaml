@@ -2,7 +2,7 @@ replicaCount: 1
 fullnameOverride: catalogue
 image:
   repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/catalogue
-  tag: 0857b3f1e3f51429eccfb889a37a53dff4236a5c
+  tag: c14ef34098879dc863095aec5a578d18ccef1a3e
   pullPolicy: IfNotPresent
 containerPort:
   enabled: true
