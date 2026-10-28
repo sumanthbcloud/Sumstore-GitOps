@@ -31,14 +31,23 @@ spec:
           ports:
             - name: amqp
               containerPort: 5672
+              protocol: TCP
             - name: management
               containerPort: 15672
+              protocol: TCP
+            - name: metrics
+              containerPort: 15692
+              protocol: TCP
           envFrom:
             - secretRef:
                 name: rabbitmq-secret
           volumeMounts:
             - name: rabbitmq-data
               mountPath: /var/lib/rabbitmq
+            - name: rabbitmq-plugins
+              mountPath: /etc/rabbitmq/enabled_plugins
+              subPath: enabled_plugins
+              readOnly: true
           readinessProbe:
             exec:
               command:
@@ -66,6 +75,10 @@ spec:
             limits:
               cpu: 400m
               memory: 256Mi
+      volumes:
+        - name: rabbitmq-plugins
+          configMap:
+            name: rabbitmq-plugins
   volumeClaimTemplates:
     - metadata:
         name: rabbitmq-data
