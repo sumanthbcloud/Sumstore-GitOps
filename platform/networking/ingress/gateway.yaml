@@ -1,0 +1,23 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: sumstore-gateway
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: sumstore-gateway
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  gatewayClassName: alb
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: sumstore-alb-config
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same

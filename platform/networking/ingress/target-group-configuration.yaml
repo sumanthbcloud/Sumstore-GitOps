@@ -1,0 +1,16 @@
+apiVersion: gateway.k8s.aws/v1beta1
+kind: TargetGroupConfiguration
+metadata:
+  name: sumstore-tg-config
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: sumstore-tg-config
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /
+      matcher:
+        httpCode: 200-399

@@ -1,0 +1,13 @@
+apiVersion: gateway.k8s.aws/v1beta1
+kind: LoadBalancerConfiguration
+metadata:
+  name: sumstore-alb-config
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: sumstore-alb-config
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  scheme: internet-facing
+  defaultTargetGroupConfiguration:
+    name: sumstore-tg-config

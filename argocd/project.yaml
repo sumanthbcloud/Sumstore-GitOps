@@ -30,6 +30,8 @@ spec:
       kind: ECRAuthorizationToken
     - group: 'storage.k8s.io'
       kind: StorageClass
+    - group: gateway.networking.k8s.io
+      kind: GatewayClass
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'

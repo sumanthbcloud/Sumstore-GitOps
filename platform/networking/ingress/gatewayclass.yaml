@@ -1,0 +1,10 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: alb
+  labels:
+    app.kubernetes.io/name: alb
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  controllerName: gateway.k8s.aws/alb
