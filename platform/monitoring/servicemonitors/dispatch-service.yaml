@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatch-metrics
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: dispatch-metrics
+    app.kubernetes.io/instance: dispatch
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: metrics
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: microservice
+    app.kubernetes.io/instance: dispatch

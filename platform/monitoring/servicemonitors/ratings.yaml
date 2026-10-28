@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ratings
+  namespace: sumstore
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: ratings
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: metrics
+spec:
+  namespaceSelector:
+    matchNames:
+      - sumstore
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "microservice"
+      app.kubernetes.io/instance: "ratings"
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
