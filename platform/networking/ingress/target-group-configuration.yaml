@@ -1,4 +1,4 @@
-apiVersion: gateway.k8s.aws/v1beta1
+apiVersion: gateway.k8s.aws/v1
 kind: TargetGroupConfiguration
 metadata:
   name: sumstore-tg-config
@@ -12,5 +12,131 @@ spec:
     targetType: ip
     healthCheckConfig:
       healthCheckPath: /
+      matcher:
+        httpCode: 200-399
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: cart-tg-config
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: cart-tg-config
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: cart
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /health
+      matcher:
+        httpCode: 200-399
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: catalogue-tg-config
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: catalogue-tg-config
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: catalogue
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /health
+      matcher:
+        httpCode: 200-399
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: payment-tg-config
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: payment-tg-config
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: payment
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /health
+      matcher:
+        httpCode: 200-399
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: ratings-tg-config
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: ratings-tg-config
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: ratings
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /health
+      matcher:
+        httpCode: 200-399
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: shipping-tg-config
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: shipping-tg-config
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: shipping
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /health
+      matcher:
+        httpCode: 200-399
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: user-tg-config
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: user-tg-config
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/managed-by: argocd
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: user
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /health
       matcher:
         httpCode: 200-399
