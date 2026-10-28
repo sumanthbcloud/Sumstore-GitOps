@@ -41,8 +41,6 @@ A core architectural principle of this platform is the decoupling of application
 ## Repository Structure
 
 ```
-├── applicationsets/
-│   └── workloads.yaml             # ApplicationSet generating 8 isolated microservice Applications
 ├── apps/                          # Per-service values contracts consumed via multiple-sources
 │   ├── cart/values.yaml
 │   ├── catalogue/values.yaml
@@ -52,12 +50,13 @@ A core architectural principle of this platform is the decoupling of application
 │   ├── shipping/values.yaml
 │   ├── user/values.yaml
 │   └── web/values.yaml
-├── argocd/                        # Root Argo CD Applications and project governance
+├── argocd/                        # Root Argo CD Applications, ApplicationSets, and project governance
+│   ├── data.yaml
 │   ├── monitoring.yaml
-│   ├── platform-data.yaml
-│   ├── platform-networking.yaml
-│   ├── platform-security.yaml
-│   └── project.yaml
+│   ├── networking.yaml
+│   ├── project.yaml
+│   ├── security.yaml
+│   └── workloads.yaml
 └── platform/
     ├── data/                      # Stateful backend datastores & storage classes
     │   ├── mongodb/
@@ -73,12 +72,12 @@ A core architectural principle of this platform is the decoupling of application
     │   ├── namespace.yaml
     │   └── values.yaml
     ├── networking/                # Gateway API and AWS Application Load Balancer configurations
+    │   ├── alb-config.yaml
     │   ├── gateway.yaml
     │   ├── gatewayclass.yaml
     │   ├── httproute-api.yaml
     │   ├── httproute-web.yaml
-    │   ├── load-balancer-configuration.yaml
-    │   └── target-group-configuration.yaml
+    │   └── target-group-config.yaml
     └── security/                  # External Secrets Operator integrations & secret definitions
         └── external-secrets/
             ├── cluster-secret-store.yaml
@@ -92,7 +91,7 @@ A core architectural principle of this platform is the decoupling of application
 
 ## Argo CD ApplicationSet Model
 
-Workloads are deployed via `applicationsets/workloads.yaml` using Argo CD **multiple sources**:
+Workloads are deployed via `argocd/workloads.yaml` using Argo CD **multiple sources**:
 1. **Source 1 (Platform Chart)**:
    - Registry: `961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts`
    - Chart: `microservice`
@@ -201,7 +200,7 @@ Step 5: Populate AWS Secrets Manager Out-of-Band (Client EC2)
                        ARGO-MANAGED (GitOps Autonomous)
 ================================================================================
 Step 6: Platform Security Reconciliation
-   │    • kubectl apply -f argocd/platform-security.yaml
+   │    • kubectl apply -f argocd/security.yaml
    │    • ClusterSecretStore connects via EKS Pod Identity
    │    • ECRAuthorizationToken generator requests temporary ECR credentials
    │    • ESO continuously refreshes Argo CD OCI repository Secret (repo-sumstore-charts) in argocd namespace (refreshInterval: 6h)
@@ -210,13 +209,13 @@ Step 6: Platform Security Reconciliation
    │      rabbitmq-secret, payment-rabbitmq-secret, dispatch-rabbitmq-secret
    ▼
 Step 7: Platform Storage & Datastores Reconciliation
-   │    • kubectl apply -f argocd/platform-data.yaml
+   │    • kubectl apply -f argocd/data.yaml
    │    • StorageClass gp3 initialized (WaitForFirstConsumer)
    │    • MySQL, RabbitMQ, MongoDB, Redis StatefulSets mount Secrets and PVCs
    ▼
 Step 8: Platform Networking & Microservices
-   │    • kubectl apply -f argocd/platform-networking.yaml (ALB Ingress)
-   │    • kubectl apply -f applicationsets/workloads.yaml (8 microservices)
+   │    • kubectl apply -f argocd/networking.yaml (ALB Ingress)
+   │    • kubectl apply -f argocd/workloads.yaml (8 microservices)
    │    • Argo CD pulls microservice:1.0.0 OCI chart via ESO-refreshed repository credentials
    │    • Argo CD continuously reconciles desired state
 ```

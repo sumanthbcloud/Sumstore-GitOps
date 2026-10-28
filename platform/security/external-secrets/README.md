@@ -160,7 +160,7 @@ The bootstrap workflow strictly distinguishes between **Bootstrap-Managed** init
    - Datastore secrets synchronized into the `sumstore` namespace.
 2. **Repository Credentials Active**: Argo CD detects `repo-sumstore-charts`, granting it authenticated read access to `961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts`.
 3. **Datastores Synchronized**: `platform-data` initializes storage classes and stateful databases.
-4. **Workloads Deployed**: `applicationsets/workloads.yaml` pulls the `microservice:1.0.0` Helm chart from private ECR OCI and deploys all 8 microservices.
+4. **Workloads Deployed**: `argocd/workloads.yaml` pulls the `microservice:1.0.0` Helm chart from private ECR OCI and deploys all 8 microservices.
 
 ### Expected ECR Authentication Dependency:
 ```
