@@ -81,3 +81,63 @@ Workloads are deployed via `applicationsets/workloads.yaml` using Argo CD **mult
    - Path: `$values/apps/{{service}}/values.yaml`
 
 This generates 8 independent Argo CD applications (`cart`, `catalogue`, `user`, `shipping`, `payment`, `ratings`, `dispatch`, `web`), each providing isolated deployment failure domains, individual automated sync policies (`selfHeal: true`, `prune: true`), and independent rollbacks.
+
+---
+
+## Day-0 Bootstrap & Deployment Sequence
+
+When an EKS cluster is provisioned, platform components and workloads must be bootstrapped in a strict, deterministic sequence:
+
+```
+Step 1: AWS Foundation & EKS Cluster (Shop-Infrastructure)
+   │    • VPC, private subnets, NAT Gateway, EKS control plane (private endpoint)
+   │    • EKS Pod Identity agent & AWS EBS CSI driver
+   │    • EKS Access Entry for administrative client workstation
+   │    • IAM roles & Pod Identity associations for ESO and AWS Load Balancer Controller
+   ▼
+Step 2: Administrative Client EC2 Workstation (AWS CLI)
+   │    • Launched into private subnet via scripts/create-eks-client.sh
+   │    • Connect via AWS Systems Manager: aws ssm start-session --target <instance-id>
+   │    • Configures kubeconfig: aws eks update-kubeconfig --name sum-shop
+   │    • Verifies cluster connectivity: kubectl get nodes
+   ▼
+Step 3: Initial Argo CD Installation (Client EC2)
+   │    • kubectl create namespace argocd
+   │    • kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.13.0/manifests/install.yaml
+   │    • kubectl apply -f argocd/project.yaml
+   ▼
+Step 4: Repository Credentials (Client EC2)
+   │    • GitHub PAT for private Sumstore-GitOps repository:
+   │      kubectl create secret generic repo-sumstore-gitops -n argocd \
+   │        --from-literal=type=git \
+   │        --from-literal=url=https://github.com/sumanthbcloud/Sumstore-GitOps.git \
+   │        --from-literal=username=git \
+   │        --from-literal=password="<GITHUB_TOKEN>"
+   │      kubectl label secret repo-sumstore-gitops -n argocd argocd.argoproj.io/secret-type=repository
+   │    • ECR OCI Helm repository secret for sumstore/charts (refreshed via ESO or cronjob)
+   ▼
+Step 5: Controllers Installation (Client EC2 / Helm)
+   │    • External Secrets Operator (helm install external-secrets external-secrets/external-secrets -n external-secrets)
+   │    • AWS Load Balancer Controller (helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system)
+   ▼
+Step 6: Populate AWS Secrets Manager Out-of-Band (Client EC2)
+   │    • Execute: platform/security/external-secrets/scripts/bootstrap-secrets.sh
+   │    • Populates sumstore/mysql and sumstore/rabbitmq
+   ▼
+Step 7: Platform Security Reconciliation
+   │    • kubectl apply -f argocd/platform-security.yaml
+   │    • ClusterSecretStore connects via EKS Pod Identity
+   │    • ExternalSecrets synchronize into native Secrets in sumstore namespace:
+   │      mysql-secret, shipping-db-secret, ratings-db-secret,
+   │      rabbitmq-secret, payment-rabbitmq-secret, dispatch-rabbitmq-secret
+   ▼
+Step 8: Platform Storage & Datastores Reconciliation
+   │    • kubectl apply -f argocd/platform-data.yaml
+   │    • StorageClass gp3 initialized (WaitForFirstConsumer)
+   │    • MySQL, RabbitMQ, MongoDB, Redis StatefulSets mount Secrets and PVCs
+   ▼
+Step 9: Platform Networking & Microservices
+   │    • kubectl apply -f argocd/platform-networking.yaml (ALB Ingress)
+   │    • kubectl apply -f applicationsets/workloads.yaml (8 microservices)
+   │    • Argo CD continuously reconciles desired state
+```

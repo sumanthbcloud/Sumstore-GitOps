@@ -13,9 +13,17 @@ spec:
   destinations:
     - namespace: sumstore
       server: https://kubernetes.default.svc
+    - namespace: external-secrets
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
+    - group: 'external-secrets.io'
+      kind: ClusterSecretStore
+    - group: 'storage.k8s.io'
+      kind: StorageClass
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'

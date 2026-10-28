@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-security
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: security
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: sumstore
+  source:
+    repoURL: https://github.com/sumanthbcloud/Sumstore-GitOps.git
+    targetRevision: main
+    path: platform/security/external-secrets
+    directory:
+      recurse: true
+      exclude: 'scripts/**'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sumstore
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

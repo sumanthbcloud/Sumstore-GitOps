@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-networking
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: networking
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: sumstore
+  source:
+    repoURL: https://github.com/sumanthbcloud/Sumstore-GitOps.git
+    targetRevision: main
+    path: platform/networking/ingress
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sumstore
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
