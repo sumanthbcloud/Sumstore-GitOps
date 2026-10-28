@@ -1,0 +1,66 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sumstore-application-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: sumstore-application-alerts
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: alerting
+spec:
+  groups:
+    - name: sumstore.application.rules
+      rules:
+        - alert: SumstoreServiceTargetDown
+          expr: up{namespace="sumstore", job=~"cart|catalogue|user|payment|shipping|ratings|dispatch|web"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "SUM Store service target {{ $labels.job }} is down"
+            description: "Service target {{ $labels.instance }} (job {{ $labels.job }}) in namespace {{ $labels.namespace }} has been unreachable for more than 2 minutes."
+
+        - alert: SumstoreHighHttp5xxErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{namespace="sumstore", status_code=~"5.."}[5m])) by (job, namespace)
+              /
+              sum(rate(http_requests_total{namespace="sumstore"}[5m])) by (job, namespace)
+              * 100 > 5
+            )
+            or
+            (
+              sum(rate(http_server_requests_seconds_count{namespace="sumstore", status=~"5.."}[5m])) by (job, namespace)
+              /
+              sum(rate(http_server_requests_seconds_count{namespace="sumstore"}[5m])) by (job, namespace)
+              * 100 > 5
+            )
+          for: 5m
+          labels:
+            severity: critical
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "High HTTP 5xx error rate on {{ $labels.job }}"
+            description: "Service {{ $labels.job }} in namespace {{ $labels.namespace }} has an HTTP 5xx error rate exceeding 5% for the last 5 minutes (current rate: {{ $value | printf \"%.2f\" }}%)."
+
+        - alert: SumstoreHighP95Latency
+          expr: |
+            (
+              histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="sumstore"}[5m])) by (le, job, namespace)) > 1
+            )
+            or
+            (
+              histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{namespace="sumstore"}[5m])) by (le, job, namespace)) > 1
+            )
+          for: 5m
+          labels:
+            severity: warning
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "High P95 latency on service {{ $labels.job }}"
+            description: "Service {{ $labels.job }} in namespace {{ $labels.namespace }} has a P95 response latency exceeding 1 second for the last 5 minutes (current P95: {{ $value | printf \"%.3f\" }}s)."

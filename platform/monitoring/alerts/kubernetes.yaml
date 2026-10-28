@@ -1,0 +1,62 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sumstore-kubernetes-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: sumstore-kubernetes-alerts
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: alerting
+spec:
+  groups:
+    - name: sumstore.kubernetes.rules
+      rules:
+        - alert: SumstoreContainerRestartingRepeatedly
+          expr: increase(kube_pod_container_status_restarts_total{namespace="sumstore"}[10m]) > 2
+          for: 2m
+          labels:
+            severity: warning
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "Container {{ $labels.container }} in pod {{ $labels.pod }} is restarting repeatedly"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace {{ $labels.namespace }}) has restarted {{ $value | printf \"%.0f\" }} times in the last 10 minutes."
+
+        - alert: SumstorePodStuckPending
+          expr: kube_pod_status_phase{namespace="sumstore", phase="Pending"} == 1
+          for: 5m
+          labels:
+            severity: warning
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "Pod {{ $labels.pod }} is stuck in Pending phase"
+            description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been in Pending state for more than 5 minutes."
+
+        - alert: SumstoreDeploymentReplicasUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="sumstore"} < kube_deployment_spec_replicas{namespace="sumstore"}
+          for: 5m
+          labels:
+            severity: warning
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "Deployment {{ $labels.deployment }} has unavailable replicas"
+            description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has fewer available replicas than desired for more than 5 minutes."
+
+        - alert: SumstoreContainerMemoryUtilizationHigh
+          expr: |
+            (
+              container_memory_working_set_bytes{namespace="sumstore", container!="", container!="POD"}
+              / on(namespace, pod, container)
+              (container_spec_memory_limit_bytes{namespace="sumstore", container!="", container!="POD"} > 0)
+            ) * 100 > 90
+          for: 10m
+          labels:
+            severity: warning
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "High memory utilization for container {{ $labels.container }} in pod {{ $labels.pod }}"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace {{ $labels.namespace }}) is consuming {{ $value | printf \"%.1f\" }}% of its configured memory limit for more than 10 minutes."

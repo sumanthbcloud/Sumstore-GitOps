@@ -1,0 +1,57 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sumstore-data-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: sumstore-data-alerts
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: alerting
+spec:
+  groups:
+    - name: sumstore.data.rules
+      rules:
+        - alert: SumstoreMongoDBTargetDown
+          expr: mongodb_up{namespace="sumstore"} == 0 or up{namespace="sumstore", job="mongodb"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "MongoDB exporter or database target is down"
+            description: "MongoDB target or exporter in namespace {{ $labels.namespace }} is unreachable for more than 2 minutes."
+
+        - alert: SumstoreMySQLTargetDown
+          expr: mysql_up{namespace="sumstore"} == 0 or up{namespace="sumstore", job="mysql"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "MySQL exporter or database target is down"
+            description: "MySQL target or exporter in namespace {{ $labels.namespace }} is unreachable for more than 2 minutes."
+
+        - alert: SumstoreRedisTargetDown
+          expr: redis_up{namespace="sumstore"} == 0 or up{namespace="sumstore", job="redis"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "Redis exporter or database target is down"
+            description: "Redis target or exporter in namespace {{ $labels.namespace }} is unreachable for more than 2 minutes."
+
+        - alert: SumstoreRabbitMQTargetDown
+          expr: up{namespace="sumstore", job=~".*rabbitmq.*"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            namespace: sumstore
+            team: platform
+          annotations:
+            summary: "RabbitMQ broker target is down"
+            description: "RabbitMQ broker target in namespace {{ $labels.namespace }} is unreachable for more than 2 minutes."
