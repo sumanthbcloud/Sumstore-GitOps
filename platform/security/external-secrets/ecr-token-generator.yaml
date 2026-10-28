@@ -1,0 +1,17 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ECRAuthorizationToken
+metadata:
+  name: ecr-token-generator
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: ecr-token-generator
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: repository-authentication
+spec:
+  region: us-east-1
+  # Authentication Architecture:
+  # Uses AWS EKS Pod Identity via the External Secrets Operator controller pod.
+  # The ESO IAM role (${cluster_name}-external-secrets-role) includes the
+  # ecr:GetAuthorizationToken action on resources: ["*"].
+  # When auth is omitted, the AWS SDK default credentials chain automatically
+  # obtains temporary credentials from the Pod Identity environment.

@@ -17,11 +17,17 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: kube-system
       server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
     - group: 'external-secrets.io'
       kind: ClusterSecretStore
+    - group: 'generators.external-secrets.io'
+      kind: ClusterGenerator
+    - group: 'generators.external-secrets.io'
+      kind: ECRAuthorizationToken
     - group: 'storage.k8s.io'
       kind: StorageClass
   namespaceResourceWhitelist:

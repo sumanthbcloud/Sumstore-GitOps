@@ -1,0 +1,35 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: repo-sumstore-charts
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: repo-sumstore-charts
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: repository-credentials
+spec:
+  # ECR temporary authorization tokens are valid for 12 hours.
+  # A 6-hour refresh interval guarantees tokens are rotated well before expiration
+  # while minimizing AWS API call frequency.
+  refreshInterval: 6h
+  target:
+    name: repo-sumstore-charts
+    creationPolicy: Owner
+    template:
+      engineVersion: v2
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repository
+      data:
+        type: helm
+        name: sumstore-charts
+        enableOCI: "true"
+        url: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: ECRAuthorizationToken
+          name: ecr-token-generator

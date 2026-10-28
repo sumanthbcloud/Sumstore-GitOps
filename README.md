@@ -84,11 +84,59 @@ This generates 8 independent Argo CD applications (`cart`, `catalogue`, `user`, 
 
 ---
 
-## Day-0 Bootstrap & Deployment Sequence
+## Controller & Add-on Version Strategy (Deferred to Live Bootstrap)
 
-When an EKS cluster is provisioned, platform components and workloads must be bootstrapped in a strict, deterministic sequence:
+To prevent brittle drift and dependency mismatches across environments, controller versions are **not hardcoded** in offline repository assets or documentation:
+- **Argo CD (`ARGOCD_VERSION`)**: Must be selected and explicitly pinned immediately before cluster bootstrap based on the Kubernetes 1.30 compatibility matrix and currently supported stable releases.
+- **External Secrets Operator (`ESO_VERSION`)**: Must be selected and explicitly pinned immediately before bootstrap based on compatibility with Kubernetes 1.30 and native generator support (`generators.external-secrets.io/v1alpha1`).
+- **AWS Load Balancer Controller (`LBC_VERSION`)**: Must be selected and explicitly pinned immediately before bootstrap matching EKS 1.30 and AWS IAM controller policy specifications.
+
+No speculative version upgrades are committed offline. Actual controller versions will be evaluated, selected, and pinned when live cluster bootstrap commences.
+
+---
+
+## Private ECR OCI Helm Authentication Architecture
+
+To enable Argo CD to pull the centralized `microservice:1.0.0` Helm chart from private Amazon ECR (`961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts`), the platform implements automated, continuous credential rotation via External Secrets Operator:
 
 ```
+AWS ECR (us-east-1)
+       │
+       ▼ (ecr:GetAuthorizationToken via EKS Pod Identity)
+External Secrets Operator (Controller in external-secrets namespace)
+  ├── ECRAuthorizationToken Generator (ecr-token-generator in argocd namespace)
+  └── ExternalSecret (repo-sumstore-charts in argocd namespace)
+       │
+       ▼ (Reconciles every 6 hours — safely below ECR 12h expiration)
+Argo CD Repository Secret (repo-sumstore-charts in argocd namespace)
+  ├── Label: argocd.argoproj.io/secret-type: repository
+  ├── type: helm
+  ├── enableOCI: "true"
+  ├── url: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts
+  ├── username: AWS
+  └── password: <temporary ECR token>
+       │
+       ▼
+Argo CD ApplicationSet (sumstore-workloads)
+  └── Authenticated OCI pull: oci://961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts/microservice:1.0.0
+```
+
+**Security & Operational Guarantees:**
+- **No static ECR passwords or temporary tokens committed to Git.**
+- **No static AWS access keys:** Uses EKS Pod Identity with the ESO IAM role (`ecr:GetAuthorizationToken`).
+- **No recurring CronJobs:** Uses ESO native `ECRAuthorizationToken` generator (`generators.external-secrets.io/v1alpha1`).
+- **Rotation:** `refreshInterval: 6h` guarantees tokens are refreshed well before ECR temporary tokens expire (12 hours).
+
+---
+
+## Day-0 Bootstrap & Deployment Sequence
+
+Platform bootstrapping follows a strict separation between **Bootstrap-Managed Initial Installations** (executed once via CLI/Helm from the administrative workstation) and **Argo-Managed Lifecycles** (reconciled autonomously via GitOps):
+
+```
+================================================================================
+                    BOOTSTRAP-MANAGED (Client Workstation)
+================================================================================
 Step 1: AWS Foundation & EKS Cluster (Shop-Infrastructure)
    │    • VPC, private subnets, NAT Gateway, EKS control plane (private endpoint)
    │    • EKS Pod Identity agent & AWS EBS CSI driver
@@ -101,43 +149,52 @@ Step 2: Administrative Client EC2 Workstation (AWS CLI)
    │    • Configures kubeconfig: aws eks update-kubeconfig --name sum-shop
    │    • Verifies cluster connectivity: kubectl get nodes
    ▼
-Step 3: Initial Argo CD Installation (Client EC2)
-   │    • kubectl create namespace argocd
-   │    • kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.13.0/manifests/install.yaml
-   │    • kubectl apply -f argocd/project.yaml
+Step 3: Initial Controller Installations (Client EC2 / Helm)
+   │    • Verify supported stable releases and pin ESO_VERSION and LBC_VERSION
+   │    • External Secrets Operator:
+   │      helm install external-secrets external-secrets/external-secrets \
+   │        -n external-secrets --create-namespace --version "${ESO_VERSION}"
+   │    • AWS Load Balancer Controller:
+   │      helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+   │        -n kube-system --version "${LBC_VERSION}"
    ▼
-Step 4: Repository Credentials (Client EC2)
-   │    • GitHub PAT for private Sumstore-GitOps repository:
+Step 4: Initial Argo CD Installation (Client EC2)
+   │    • Verify supported stable release and pin ARGOCD_VERSION
+   │    • kubectl create namespace argocd
+   │    • kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/${ARGOCD_VERSION}/manifests/install.yaml
+   │    • kubectl apply -f argocd/project.yaml
+   │    • Configure Git repository credential Secret for Sumstore-GitOps:
    │      kubectl create secret generic repo-sumstore-gitops -n argocd \
    │        --from-literal=type=git \
    │        --from-literal=url=https://github.com/sumanthbcloud/Sumstore-GitOps.git \
    │        --from-literal=username=git \
    │        --from-literal=password="<GITHUB_TOKEN>"
    │      kubectl label secret repo-sumstore-gitops -n argocd argocd.argoproj.io/secret-type=repository
-   │    • ECR OCI Helm repository secret for sumstore/charts (refreshed via ESO or cronjob)
    ▼
-Step 5: Controllers Installation (Client EC2 / Helm)
-   │    • External Secrets Operator (helm install external-secrets external-secrets/external-secrets -n external-secrets)
-   │    • AWS Load Balancer Controller (helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system)
-   ▼
-Step 6: Populate AWS Secrets Manager Out-of-Band (Client EC2)
+Step 5: Populate AWS Secrets Manager Out-of-Band (Client EC2)
    │    • Execute: platform/security/external-secrets/scripts/bootstrap-secrets.sh
-   │    • Populates sumstore/mysql and sumstore/rabbitmq
-   ▼
-Step 7: Platform Security Reconciliation
+   │    • Populates sumstore/mysql and sumstore/rabbitmq in AWS Secrets Manager
+
+================================================================================
+                       ARGO-MANAGED (GitOps Autonomous)
+================================================================================
+Step 6: Platform Security Reconciliation
    │    • kubectl apply -f argocd/platform-security.yaml
    │    • ClusterSecretStore connects via EKS Pod Identity
+   │    • ECRAuthorizationToken generator requests temporary ECR credentials
+   │    • ESO continuously refreshes Argo CD OCI repository Secret (repo-sumstore-charts) in argocd namespace (refreshInterval: 6h)
    │    • ExternalSecrets synchronize into native Secrets in sumstore namespace:
    │      mysql-secret, shipping-db-secret, ratings-db-secret,
    │      rabbitmq-secret, payment-rabbitmq-secret, dispatch-rabbitmq-secret
    ▼
-Step 8: Platform Storage & Datastores Reconciliation
+Step 7: Platform Storage & Datastores Reconciliation
    │    • kubectl apply -f argocd/platform-data.yaml
    │    • StorageClass gp3 initialized (WaitForFirstConsumer)
    │    • MySQL, RabbitMQ, MongoDB, Redis StatefulSets mount Secrets and PVCs
    ▼
-Step 9: Platform Networking & Microservices
+Step 8: Platform Networking & Microservices
    │    • kubectl apply -f argocd/platform-networking.yaml (ALB Ingress)
    │    • kubectl apply -f applicationsets/workloads.yaml (8 microservices)
+   │    • Argo CD pulls microservice:1.0.0 OCI chart via ESO-refreshed repository credentials
    │    • Argo CD continuously reconciles desired state
 ```

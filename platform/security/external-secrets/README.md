@@ -1,11 +1,14 @@
 # SUM Store External Secrets Architecture
 
-This directory defines the **External Secrets Operator (ESO)** integration for the SUM Store platform. It bridges credentials stored in **AWS Secrets Manager** to native **Kubernetes Secrets** consumed by datastores and microservices.
+This directory defines the **External Secrets Operator (ESO)** integration for the SUM Store platform. It bridges credentials stored in **AWS Secrets Manager** and **Amazon ECR** to native **Kubernetes Secrets** consumed by datastores, microservices, and Argo CD.
 
 ---
 
 ## 1. Architecture Overview
 
+The platform uses ESO for two critical credential lifecycles:
+
+### A. Datastore & Application Secrets (AWS Secrets Manager)
 ```
 AWS Secrets Manager (Containers)
   ├── sumstore/mysql
@@ -25,9 +28,34 @@ Kubernetes Secrets (sumstore namespace)
   └── dispatch-rabbitmq-secret ──► Dispatch Deployment
 ```
 
+### B. Private ECR OCI Helm Repository Authentication
+```
+Amazon ECR (961544628309.dkr.ecr.us-east-1.amazonaws.com)
+            │
+            ▼ (ecr:GetAuthorizationToken via EKS Pod Identity)
+External Secrets Operator (Controller in external-secrets namespace)
+  ├── ECRAuthorizationToken Generator (ecr-token-generator in argocd namespace)
+  └── ExternalSecret (repo-sumstore-charts in argocd namespace)
+            │
+            ▼ (Reconciles every 6h — safely below ECR 12h expiration)
+Argo CD Repository Secret (repo-sumstore-charts in argocd namespace)
+  ├── Labels: argocd.argoproj.io/secret-type: repository
+  ├── type: helm
+  ├── enableOCI: "true"
+  ├── url: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts
+  ├── username: AWS
+  └── password: <temporary ECR token>
+            │
+            ▼
+Argo CD ApplicationSet (sumstore-workloads)
+  └── Authenticated pull: oci://961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts/microservice:1.0.0
+```
+
 ---
 
 ## 2. Secret Dependency & Mapping Matrix
+
+### Application & Datastore Secrets (Namespace: `sumstore`)
 
 | Consumer Workload | Kubernetes Secret Name | Required Secret Keys | Authoritative AWS Secret | AWS Secret Property | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -38,6 +66,12 @@ Kubernetes Secrets (sumstore namespace)
 | **Payment Service** | `payment-rabbitmq-secret` | `AMQP_USER`<br>`AMQP_PASS` | `sumstore/rabbitmq` | `RABBITMQ_DEFAULT_USER`<br>`RABBITMQ_DEFAULT_PASS` | Python Pika AMQP publisher credentials for order queue. |
 | **Dispatch Service** | `dispatch-rabbitmq-secret` | `AMQP_USER`<br>`AMQP_PASS` | `sumstore/rabbitmq` | `RABBITMQ_DEFAULT_USER`<br>`RABBITMQ_DEFAULT_PASS` | Go AMQP consumer credentials for order fulfillment processing. |
 
+### ECR OCI Repository Secret (Namespace: `argocd`)
+
+| Consumer Workload | Kubernetes Secret Name | Required Secret Keys / Properties | Authoritative Generator | Generator Property | Purpose |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Argo CD Server & Repo Server** | `repo-sumstore-charts` | `type: helm`<br>`name: sumstore-charts`<br>`enableOCI: "true"`<br>`url: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts`<br>`username: AWS`<br>`password: <token>` | `ECRAuthorizationToken` (`ecr-token-generator`) | `.username`<br>`.password` | Authenticates Argo CD repo server to pull private OCI Helm chart `microservice:1.0.0` from Amazon ECR. Rotated every 6 hours. |
+
 ---
 
 ## 3. Directory Structure
@@ -46,9 +80,11 @@ Kubernetes Secrets (sumstore namespace)
 platform/security/external-secrets/
 ├── README.md                          # Architecture and operational documentation
 ├── cluster-secret-store.yaml          # ClusterSecretStore definition for AWS Secrets Manager
+├── ecr-token-generator.yaml           # ECRAuthorizationToken generator for Amazon ECR
 ├── scripts/
 │   └── bootstrap-secrets.sh           # Safe offline/post-EKS credential population script
 └── externalsecrets/
+    ├── argocd-ecr-repo.yaml           # ExternalSecret generating repo-sumstore-charts in argocd namespace
     ├── mysql.yaml                     # ExternalSecret generating mysql-secret
     ├── shipping-db.yaml               # ExternalSecret generating shipping-db-secret
     ├── ratings-db.yaml                # ExternalSecret generating ratings-db-secret
@@ -65,7 +101,8 @@ platform/security/external-secrets/
 * **Rationale**:
   1. **Architectural Consistency**: `Shop-Infrastructure` already utilizes EKS Pod Identity for the AWS EBS CSI Driver (`eks-pod-identity-agent` addon + `aws_eks_pod_identity_association`).
   2. **No OIDC Provider Overhead**: IRSA requires provisioning and maintaining an IAM OpenID Connect (OIDC) provider per cluster and injecting role ARNs as service account annotations. EKS Pod Identity decouples IAM roles from cluster OIDC issuers.
-  3. **Zero In-Cluster Secrets**: The `ClusterSecretStore` manifest requires no static AWS credentials or hardcoded IAM role ARNs. The ESO controller pod automatically discovers credentials via the standard AWS SDK container credential provider (`AWS_CONTAINER_CREDENTIALS_FULL_URI`).
+  3. **Zero In-Cluster Secrets**: The `ClusterSecretStore` and `ECRAuthorizationToken` generator manifests require no static AWS credentials or hardcoded IAM role ARNs. The ESO controller pod automatically discovers credentials via the standard AWS SDK container credential provider (`AWS_CONTAINER_CREDENTIALS_FULL_URI`).
+  4. **ECR Token Generation**: The ESO IAM role (`${cluster_name}-external-secrets-role`) includes `ecr:GetAuthorizationToken` on `*`. When the generator executes, ESO calls AWS ECR directly using Pod Identity without static keys or STS assume-role overhead.
 
 ---
 
@@ -73,40 +110,44 @@ platform/security/external-secrets/
 
 | Component | Responsibility / Ownership | What it Contains / Manages |
 | :--- | :--- | :--- |
-| **Shop-Infrastructure** | Terraform | AWS Secrets Manager secret containers (`sumstore/mysql`, `sumstore/rabbitmq`), IAM Role, least-privilege IAM Policy (`GetSecretValue`, `DescribeSecret`), and `aws_eks_pod_identity_association`. **No secret values.** |
+| **Shop-Infrastructure** | Terraform | AWS Secrets Manager secret containers (`sumstore/mysql`, `sumstore/rabbitmq`), IAM Role, least-privilege IAM Policy (`GetSecretValue`, `DescribeSecret`, `ecr:GetAuthorizationToken`), and `aws_eks_pod_identity_association`. **No secret values.** |
 | **AWS Secrets Manager** | AWS Cloud (Out-of-band) | Actual encrypted runtime secret strings and credentials. Populated via controlled CLI / bootstrap script. |
-| **Sumstore-GitOps** | GitOps / Argo CD | `ClusterSecretStore` and `ExternalSecret` custom resource definitions. Refresh policies and property mapping contracts. **No secret values.** |
-| **External Secrets Operator** | In-Cluster Controller | Continuously reconciles `ExternalSecret` definitions against AWS Secrets Manager and writes native `Secret` resources in the `sumstore` namespace. |
+| **Sumstore-GitOps** | GitOps / Argo CD | `ClusterSecretStore`, `ECRAuthorizationToken` generator, and `ExternalSecret` custom resource definitions. Refresh policies and property mapping contracts. **No secret values.** |
+| **External Secrets Operator** | In-Cluster Controller | Continuously reconciles `ExternalSecret` definitions against AWS Secrets Manager and Amazon ECR; writes native `Secret` resources in the `sumstore` and `argocd` namespaces. |
 | **Kubernetes Secrets** | Cluster Runtime | Native ephemeral `Secret` objects created and managed by ESO (`Owner` creation policy). |
 | **Application Workloads** | Helm / Central Platform Chart | Ingests native Secrets transparently via `existingSecret: <name>` without any knowledge of ESO or AWS. |
 | **Client EC2 Workstation** | Administrative | Out-of-band operational workstation used to run bootstrap scripts; **not** managed by Terraform. |
 
 ---
 
-## 6. Datastore and Application Startup Ordering
+## 6. Platform Ordering & Dependency Chain
 
-To prevent startup failures and crash loops, resources must be created in this strict order:
+The bootstrap workflow strictly distinguishes between **Bootstrap-Managed** initial controller installations and **Argo-Managed** continuous synchronization to avoid circular dependencies:
 
+### A. Bootstrap-Managed (One-time CLI setup from Client Workstation)
+1. **ESO Installed**: External Secrets Operator installed via Helm (`external-secrets` namespace) with Pod Identity active.
+2. **AWS LBC Installed**: AWS Load Balancer Controller installed via Helm (`kube-system` namespace).
+3. **Argo CD Installed**: Argo CD installed via manifests (`argocd` namespace) with Git repository credentials configured for `Sumstore-GitOps`.
+4. **Secrets Populated**: `bootstrap-secrets.sh` executed out-of-band to populate AWS Secrets Manager.
+
+### B. Argo-Managed (GitOps Reconciled)
+1. **Platform Security Synchronized**: Argo CD applies `platform/security/external-secrets`.
+   - `ClusterSecretStore` connects to AWS Secrets Manager.
+   - `ECRAuthorizationToken` generator and `ExternalSecret` synchronize `repo-sumstore-charts` into the `argocd` namespace with label `argocd.argoproj.io/secret-type: repository`.
+   - Datastore secrets synchronized into the `sumstore` namespace.
+2. **Repository Credentials Active**: Argo CD detects `repo-sumstore-charts`, granting it authenticated read access to `961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts`.
+3. **Datastores Synchronized**: `platform-data` initializes storage classes and stateful databases.
+4. **Workloads Deployed**: `applicationsets/workloads.yaml` pulls the `microservice:1.0.0` Helm chart from private ECR OCI and deploys all 8 microservices.
+
+### Expected ECR Authentication Dependency:
 ```
-Step 1: EKS Cluster & EKS Pod Identity Agent created (Terraform)
-   │
-Step 2: External Secrets Operator installed in cluster (Helm / Argo CD)
-   │
-Step 3: Secrets Manager secret values populated out-of-band (bootstrap-secrets.sh)
-   │
-Step 4: ClusterSecretStore & ExternalSecrets applied (GitOps)
-   │
-Step 5: Kubernetes Secrets synchronized by ESO (Status: Ready / SecretSynced)
-   │
-Step 6: Datastores deployed (MySQL & RabbitMQ StatefulSets mount secrets and initialize)
-   │
-Step 7: Application workloads deployed (Shipping, Ratings, Payment, Dispatch mount secrets)
+ESO installed
+→ ESO Pod Identity active
+→ ECR token generator (ecr-token-generator)
+→ ExternalSecret (repo-sumstore-charts)
+→ Argo CD repository credential Secret created
+→ Argo CD can pull microservice:1.0.0
 ```
-
-### Avoiding Circular Dependencies in Argo CD
-If Argo CD attempts to synchronize application workloads or datastores before ESO has synchronized secrets, Pods will fail to start because referenced Secrets (`existingSecret`) do not exist. To resolve this:
-* Deploy the **Platform Security layer** (`ClusterSecretStore` + `ExternalSecrets`) ahead of datastore and application layers.
-* Verify that native Secrets exist in the `sumstore` namespace (`kubectl get secrets -n sumstore`) before launching MySQL, RabbitMQ, and microservice Deployments.
 
 ---
 
