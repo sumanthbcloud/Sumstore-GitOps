@@ -2,7 +2,7 @@ replicaCount: 1
 fullnameOverride: ratings
 image:
   repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/ratings
-  tag: 5d39a93dec2c1ff413b08146b319d7fea7ce42f2
+  tag: 38125b2961441697da30765108e125fa7c2e4a70
   pullPolicy: IfNotPresent
 containerPort:
   enabled: true
