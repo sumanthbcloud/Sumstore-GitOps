@@ -2,7 +2,7 @@ replicaCount: 1
 fullnameOverride: dispatch
 image:
   repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/dispatch
-  tag: 38125b2961441697da30765108e125fa7c2e4a70
+  tag: f2ce95d394debc03448a01f257583f86dca6e81f
   pullPolicy: IfNotPresent
 containerPort:
   enabled: false
