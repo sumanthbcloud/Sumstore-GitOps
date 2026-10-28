@@ -24,6 +24,9 @@ spec:
     - repoURL: https://github.com/sumanthbcloud/Sumstore-GitOps.git
       targetRevision: main
       path: platform/monitoring/servicemonitors
+    - repoURL: https://github.com/sumanthbcloud/Sumstore-GitOps.git
+      targetRevision: main
+      path: platform/monitoring/dashboards
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
