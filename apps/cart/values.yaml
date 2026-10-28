@@ -15,6 +15,7 @@ service:
 config:
   REDIS_HOST: redis
   CATALOGUE_HOST: catalogue
+existingSecret: cart-redis-secret
 probes:
   startup:
     enabled: true

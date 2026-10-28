@@ -10,8 +10,10 @@ The platform uses ESO for two critical credential lifecycles:
 
 ### A. Datastore & Application Secrets (AWS Secrets Manager)
 ```
-AWS Secrets Manager (Containers)
+AWS Secrets Manager (Authoritative Containers)
   ├── sumstore/mysql
+  ├── sumstore/mongodb
+  ├── sumstore/redis
   └── sumstore/rabbitmq
             │
             ▼ (Read via EKS Pod Identity: GetSecretValue, DescribeSecret)
@@ -23,6 +25,13 @@ Kubernetes Secrets (sumstore namespace)
   ├── mysql-secret             ──► MySQL StatefulSet
   ├── shipping-db-secret       ──► Shipping Deployment
   ├── ratings-db-secret        ──► Ratings Deployment
+  ├── mongodb-secret           ──► MongoDB StatefulSet
+  ├── catalogue-mongodb-secret ──► Catalogue Deployment
+  ├── user-mongodb-secret      ──► User Contract (MongoDB)
+  ├── redis-secret             ──► Redis Deployment
+  ├── cart-redis-secret        ──► Cart Deployment
+  ├── user-redis-secret        ──► User Contract (Redis)
+  ├── user-secret              ──► User Deployment (MongoDB + Redis)
   ├── rabbitmq-secret          ──► RabbitMQ StatefulSet
   ├── payment-rabbitmq-secret  ──► Payment Deployment
   └── dispatch-rabbitmq-secret ──► Dispatch Deployment
@@ -62,6 +71,13 @@ Argo CD ApplicationSet (sumstore-workloads)
 | **MySQL StatefulSet** | `mysql-secret` | `MYSQL_ROOT_PASSWORD`<br>`MYSQL_DATABASE`<br>`SHIPPING_DB_USER`<br>`SHIPPING_DB_PASSWORD`<br>`RATINGS_DB_USER`<br>`RATINGS_DB_PASSWORD` | `sumstore/mysql` | `MYSQL_ROOT_PASSWORD`<br>`MYSQL_DATABASE`<br>`SHIPPING_DB_USER`<br>`SHIPPING_DB_PASSWORD`<br>`RATINGS_DB_USER`<br>`RATINGS_DB_PASSWORD` | Root admin password, primary database initialization (`cities`), and application user provisioning via `30-create-app-users.sh`. |
 | **Shipping Service** | `shipping-db-secret` | `DB_USER`<br>`DB_PASSWORD` | `sumstore/mysql` | `SHIPPING_DB_USER`<br>`SHIPPING_DB_PASSWORD` | Java Spring Boot JPA connection credentials to MySQL `cities` database. |
 | **Ratings Service** | `ratings-db-secret` | `PDO_USER`<br>`PDO_PASSWORD` | `sumstore/mysql` | `RATINGS_DB_USER`<br>`RATINGS_DB_PASSWORD` | PHP Symfony PDO connection credentials to MySQL `ratings` database. |
+| **MongoDB StatefulSet** | `mongodb-secret` | `MONGO_INITDB_ROOT_USERNAME`<br>`MONGO_INITDB_ROOT_PASSWORD` | `sumstore/mongodb` | `username`<br>`password` | Root administrative credentials configured on fresh database / PVC initialization with `--auth`. |
+| **Catalogue Service** | `catalogue-mongodb-secret` | `MONGO_URL`<br>`MONGO_USER`<br>`MONGO_PASSWORD` | `sumstore/mongodb` | `username`<br>`password` | Node.js MongoDB driver connection string with credentials for product catalogue data. |
+| **User Service (Mongo)** | `user-mongodb-secret` | `MONGO_URL`<br>`MONGO_USER`<br>`MONGO_PASSWORD` | `sumstore/mongodb` | `username`<br>`password` | Node.js MongoDB driver connection credentials for users and orders collections. |
+| **Redis Deployment** | `redis-secret` | `REDIS_PASSWORD`<br>`REDISCLI_AUTH` | `sumstore/redis` | `password` | Password authentication for Redis server (`--requirepass`) and probes (`REDISCLI_AUTH`). |
+| **Cart Service** | `cart-redis-secret` | `REDIS_PASSWORD` | `sumstore/redis` | `password` | Node.js Redis client authentication password for cart session store. |
+| **User Service (Redis)** | `user-redis-secret` | `REDIS_PASSWORD` | `sumstore/redis` | `password` | Node.js Redis client authentication password for anonymous user tracking counter. |
+| **User Service Workload** | `user-secret` | `MONGO_URL`<br>`REDIS_PASSWORD` | `sumstore/mongodb`<br>`sumstore/redis` | `username`<br>`password` (Mongo)<br>`password` (Redis) | Unified workload secret mounted by User deployment via `existingSecret: user-secret`. |
 | **RabbitMQ StatefulSet** | `rabbitmq-secret` | `RABBITMQ_DEFAULT_USER`<br>`RABBITMQ_DEFAULT_PASS` | `sumstore/rabbitmq` | `RABBITMQ_DEFAULT_USER`<br>`RABBITMQ_DEFAULT_PASS` | Default broker administrator credentials configured on container initialization. |
 | **Payment Service** | `payment-rabbitmq-secret` | `AMQP_USER`<br>`AMQP_PASS` | `sumstore/rabbitmq` | `RABBITMQ_DEFAULT_USER`<br>`RABBITMQ_DEFAULT_PASS` | Python Pika AMQP publisher credentials for order queue. |
 | **Dispatch Service** | `dispatch-rabbitmq-secret` | `AMQP_USER`<br>`AMQP_PASS` | `sumstore/rabbitmq` | `RABBITMQ_DEFAULT_USER`<br>`RABBITMQ_DEFAULT_PASS` | Go AMQP consumer credentials for order fulfillment processing. |
@@ -88,6 +104,13 @@ platform/security/external-secrets/
     ├── mysql.yaml                     # ExternalSecret generating mysql-secret
     ├── shipping-db.yaml               # ExternalSecret generating shipping-db-secret
     ├── ratings-db.yaml                # ExternalSecret generating ratings-db-secret
+    ├── mongodb.yaml                   # ExternalSecret generating mongodb-secret
+    ├── catalogue-mongodb.yaml         # ExternalSecret generating catalogue-mongodb-secret
+    ├── user-mongodb.yaml              # ExternalSecret generating user-mongodb-secret
+    ├── redis.yaml                     # ExternalSecret generating redis-secret
+    ├── cart-redis.yaml                # ExternalSecret generating cart-redis-secret
+    ├── user-redis.yaml                # ExternalSecret generating user-redis-secret
+    ├── user-secret.yaml               # ExternalSecret generating user-secret
     ├── rabbitmq.yaml                  # ExternalSecret generating rabbitmq-secret
     ├── payment-rabbitmq.yaml          # ExternalSecret generating payment-rabbitmq-secret
     └── dispatch-rabbitmq.yaml         # ExternalSecret generating dispatch-rabbitmq-secret
@@ -110,7 +133,7 @@ platform/security/external-secrets/
 
 | Component | Responsibility / Ownership | What it Contains / Manages |
 | :--- | :--- | :--- |
-| **Shop-Infrastructure** | Terraform | AWS Secrets Manager secret containers (`sumstore/mysql`, `sumstore/rabbitmq`), IAM Role, least-privilege IAM Policy (`GetSecretValue`, `DescribeSecret`, `ecr:GetAuthorizationToken`), and `aws_eks_pod_identity_association`. **No secret values.** |
+| **Shop-Infrastructure** | Terraform | AWS Secrets Manager secret containers (`sumstore/mysql`, `sumstore/mongodb`, `sumstore/redis`, `sumstore/rabbitmq`), IAM Role, least-privilege IAM Policy (`GetSecretValue`, `DescribeSecret`, `ecr:GetAuthorizationToken`), and `aws_eks_pod_identity_association`. **No secret values.** |
 | **AWS Secrets Manager** | AWS Cloud (Out-of-band) | Actual encrypted runtime secret strings and credentials. Populated via controlled CLI / bootstrap script. |
 | **Sumstore-GitOps** | GitOps / Argo CD | `ClusterSecretStore`, `ECRAuthorizationToken` generator, and `ExternalSecret` custom resource definitions. Refresh policies and property mapping contracts. **No secret values.** |
 | **External Secrets Operator** | In-Cluster Controller | Continuously reconciles `ExternalSecret` definitions against AWS Secrets Manager and Amazon ECR; writes native `Secret` resources in the `sumstore` and `argocd` namespaces. |
@@ -163,6 +186,8 @@ export AWS_REGION="us-east-1"
 # export MYSQL_ROOT_PASSWORD="MySecureRootPassword123"
 # export SHIPPING_DB_PASSWORD="MyShippingPassword123"
 # export RATINGS_DB_PASSWORD="MyRatingsPassword123"
+# export MONGODB_PASSWORD="MyMongoPassword123"
+# export REDIS_PASSWORD="MyRedisPassword123"
 # export RABBITMQ_DEFAULT_PASS="MyRabbitMqPassword123"
 
 # 3. Execute the controlled bootstrap script:

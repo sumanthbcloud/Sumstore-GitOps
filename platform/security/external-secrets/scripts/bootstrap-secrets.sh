@@ -5,6 +5,8 @@
 # PURPOSE:
 #   Populates initial secret values into AWS Secrets Manager containers:
 #     - sumstore/mysql
+#     - sumstore/mongodb
+#     - sumstore/redis
 #     - sumstore/rabbitmq
 #
 # USAGE (Run ONLY AFTER AWS infrastructure is created):
@@ -22,6 +24,8 @@ set -euo pipefail
 
 AWS_REGION="${AWS_REGION:-us-east-1}"
 MYSQL_SECRET_NAME="${MYSQL_SECRET_NAME:-sumstore/mysql}"
+MONGODB_SECRET_NAME="${MONGODB_SECRET_NAME:-sumstore/mongodb}"
+REDIS_SECRET_NAME="${REDIS_SECRET_NAME:-sumstore/redis}"
 RABBITMQ_SECRET_NAME="${RABBITMQ_SECRET_NAME:-sumstore/rabbitmq}"
 
 echo "================================================="
@@ -89,7 +93,59 @@ aws secretsmanager put-secret-value \
 echo "✓ Successfully populated ${MYSQL_SECRET_NAME}."
 
 # ------------------------------------------------------------------------------
-# 2. Prepare RabbitMQ Credentials
+# 2. Prepare MongoDB Credentials
+# ------------------------------------------------------------------------------
+echo ""
+echo "Configuring MongoDB secret values (${MONGODB_SECRET_NAME})..."
+
+MONGODB_USERNAME="${MONGODB_USERNAME:-admin}"
+MONGODB_PASSWORD="${MONGODB_PASSWORD:-$(generate_password)}"
+
+export MONGODB_USERNAME MONGODB_PASSWORD
+MONGODB_PAYLOAD=$(python3 -c '
+import json, os, sys
+
+data = {
+    "username": os.environ["MONGODB_USERNAME"],
+    "password": os.environ["MONGODB_PASSWORD"],
+}
+sys.stdout.write(json.dumps(data))
+')
+
+echo "Uploading MongoDB credentials to Secrets Manager..."
+aws secretsmanager put-secret-value \
+  --secret-id "${MONGODB_SECRET_NAME}" \
+  --secret-string "${MONGODB_PAYLOAD}" \
+  --region "${AWS_REGION}" >/dev/null
+echo "✓ Successfully populated ${MONGODB_SECRET_NAME}."
+
+# ------------------------------------------------------------------------------
+# 3. Prepare Redis Credentials
+# ------------------------------------------------------------------------------
+echo ""
+echo "Configuring Redis secret values (${REDIS_SECRET_NAME})..."
+
+REDIS_PASSWORD="${REDIS_PASSWORD:-$(generate_password)}"
+
+export REDIS_PASSWORD
+REDIS_PAYLOAD=$(python3 -c '
+import json, os, sys
+
+data = {
+    "password": os.environ["REDIS_PASSWORD"],
+}
+sys.stdout.write(json.dumps(data))
+')
+
+echo "Uploading Redis credentials to Secrets Manager..."
+aws secretsmanager put-secret-value \
+  --secret-id "${REDIS_SECRET_NAME}" \
+  --secret-string "${REDIS_PAYLOAD}" \
+  --region "${AWS_REGION}" >/dev/null
+echo "✓ Successfully populated ${REDIS_SECRET_NAME}."
+
+# ------------------------------------------------------------------------------
+# 4. Prepare RabbitMQ Credentials
 # ------------------------------------------------------------------------------
 echo ""
 echo "Configuring RabbitMQ secret values (${RABBITMQ_SECRET_NAME})..."

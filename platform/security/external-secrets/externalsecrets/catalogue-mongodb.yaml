@@ -1,0 +1,30 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: catalogue-mongodb-secret
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: catalogue
+    app.kubernetes.io/part-of: sumstore
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: sumstore-secretsmanager
+    kind: ClusterSecretStore
+  target:
+    name: catalogue-mongodb-secret
+    creationPolicy: Owner
+    template:
+      data:
+        MONGO_URL: "mongodb://{{ .username }}:{{ .password }}@mongodb:27017/catalogue?authSource=admin"
+        MONGO_USER: "{{ .username }}"
+        MONGO_PASSWORD: "{{ .password }}"
+  data:
+    - secretKey: username
+      remoteRef:
+        key: sumstore/mongodb
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: sumstore/mongodb
+        property: password

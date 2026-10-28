@@ -15,7 +15,7 @@ service:
 config:
   USER_SERVER_PORT: "8080"
   REDIS_HOST: redis
-  MONGO_URL: mongodb://mongodb:27017/users
+existingSecret: user-secret
 probes:
   startup:
     enabled: true

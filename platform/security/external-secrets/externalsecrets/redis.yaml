@@ -1,0 +1,26 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: redis-secret
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: cache
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: sumstore-secretsmanager
+    kind: ClusterSecretStore
+  target:
+    name: redis-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: REDIS_PASSWORD
+      remoteRef:
+        key: sumstore/redis
+        property: password
+    - secretKey: REDISCLI_AUTH
+      remoteRef:
+        key: sumstore/redis
+        property: password

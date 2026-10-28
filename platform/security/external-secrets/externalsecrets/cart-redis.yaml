@@ -1,0 +1,21 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: cart-redis-secret
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: cart
+    app.kubernetes.io/part-of: sumstore
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: sumstore-secretsmanager
+    kind: ClusterSecretStore
+  target:
+    name: cart-redis-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: REDIS_PASSWORD
+      remoteRef:
+        key: sumstore/redis
+        property: password
