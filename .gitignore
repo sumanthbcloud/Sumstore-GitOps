@@ -27,7 +27,3 @@ temp/
 rendered/
 *.rendered.yaml
 
-# Keep the vendored Helm dependency required by Argo CD
-!helm/sumstore/Chart.lock
-!helm/sumstore/charts/
-!helm/sumstore/charts/app-service-0.1.0.tgz
