@@ -12,6 +12,11 @@ service:
   type: ClusterIP
   port: 8080
   targetPort: 8080
+  extraPorts:
+    - name: metrics
+      port: 9113
+      targetPort: 9113
+      protocol: TCP
 config:
   CATALOGUE_HOST: catalogue
   USER_HOST: user
@@ -39,3 +44,24 @@ resources:
   limits:
     cpu: 250m
     memory: 128Mi
+
+extraContainers:
+  - name: nginx-exporter
+    image: nginx/nginx-prometheus-exporter:1.4.1
+    imagePullPolicy: IfNotPresent
+    ports:
+      - name: metrics
+        containerPort: 9113
+        protocol: TCP
+    args:
+      - -nginx.scrape-uri=http://127.0.0.1:8080/nginx_status
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 50m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true

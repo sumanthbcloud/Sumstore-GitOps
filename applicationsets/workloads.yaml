@@ -10,13 +10,21 @@ spec:
     - list:
         elements:
           - service: cart
+            chartVersion: 1.0.0
           - service: catalogue
+            chartVersion: 1.0.0
           - service: user
+            chartVersion: 1.0.0
           - service: shipping
+            chartVersion: 1.0.0
           - service: payment
+            chartVersion: 1.0.0
           - service: ratings
+            chartVersion: 1.0.0
           - service: dispatch
+            chartVersion: 1.0.0
           - service: web
+            chartVersion: 1.2.0
   template:
     metadata:
       name: "{{service}}"
@@ -31,7 +39,7 @@ spec:
       sources:
         - repoURL: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/charts
           chart: microservice
-          targetRevision: 1.0.0
+          targetRevision: "{{chartVersion}}"
           helm:
             releaseName: "{{service}}"
             valueFiles:
