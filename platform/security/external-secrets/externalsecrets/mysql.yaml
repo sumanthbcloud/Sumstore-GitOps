@@ -1,0 +1,42 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: mysql-secret
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: database
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: sumstore-secretsmanager
+    kind: ClusterSecretStore
+  target:
+    name: mysql-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: MYSQL_ROOT_PASSWORD
+      remoteRef:
+        key: sumstore/mysql
+        property: MYSQL_ROOT_PASSWORD
+    - secretKey: MYSQL_DATABASE
+      remoteRef:
+        key: sumstore/mysql
+        property: MYSQL_DATABASE
+    - secretKey: SHIPPING_DB_USER
+      remoteRef:
+        key: sumstore/mysql
+        property: SHIPPING_DB_USER
+    - secretKey: SHIPPING_DB_PASSWORD
+      remoteRef:
+        key: sumstore/mysql
+        property: SHIPPING_DB_PASSWORD
+    - secretKey: RATINGS_DB_USER
+      remoteRef:
+        key: sumstore/mysql
+        property: RATINGS_DB_USER
+    - secretKey: RATINGS_DB_PASSWORD
+      remoteRef:
+        key: sumstore/mysql
+        property: RATINGS_DB_PASSWORD

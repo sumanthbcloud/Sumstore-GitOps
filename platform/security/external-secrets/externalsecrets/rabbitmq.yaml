@@ -1,0 +1,26 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: rabbitmq-secret
+  namespace: sumstore
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/part-of: sumstore
+    app.kubernetes.io/component: broker
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: sumstore-secretsmanager
+    kind: ClusterSecretStore
+  target:
+    name: rabbitmq-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: RABBITMQ_DEFAULT_USER
+      remoteRef:
+        key: sumstore/rabbitmq
+        property: RABBITMQ_DEFAULT_USER
+    - secretKey: RABBITMQ_DEFAULT_PASS
+      remoteRef:
+        key: sumstore/rabbitmq
+        property: RABBITMQ_DEFAULT_PASS
