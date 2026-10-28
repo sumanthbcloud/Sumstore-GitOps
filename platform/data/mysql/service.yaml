@@ -12,5 +12,9 @@ spec:
       port: 3306
       targetPort: 3306
       protocol: TCP
+    - name: metrics
+      port: 9104
+      targetPort: 9104
+      protocol: TCP
   selector:
     app.kubernetes.io/name: mysql

@@ -40,3 +40,7 @@ spec:
       remoteRef:
         key: sumstore/mysql
         property: RATINGS_DB_PASSWORD
+    - secretKey: MYSQLD_EXPORTER_PASSWORD
+      remoteRef:
+        key: sumstore/mysql
+        property: MYSQLD_EXPORTER_PASSWORD

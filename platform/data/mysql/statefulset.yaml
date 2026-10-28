@@ -8,6 +8,7 @@
 #   - SHIPPING_DB_PASSWORD       : Application password for Shipping service
 #   - RATINGS_DB_USER            : Application username for Ratings service (granted on ratings.*)
 #   - RATINGS_DB_PASSWORD        : Application password for Ratings service
+#   - MYSQLD_EXPORTER_PASSWORD   : Dedicated monitoring user password for mysqld-exporter
 #
 # Image Strategy:
 #   Requires the custom MySQL image built from db/mysql/Dockerfile via .github/workflows/ci-mysql.yml.
@@ -98,6 +99,28 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+        - name: mysqld-exporter
+          image: prom/mysqld-exporter:v0.16.0
+          args:
+            - --mysqld.address=127.0.0.1:3306
+            - --mysqld.username=mysqld_exporter
+          env:
+            - name: MYSQLD_EXPORTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQLD_EXPORTER_PASSWORD
+          ports:
+            - name: metrics
+              containerPort: 9104
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
   volumeClaimTemplates:
     - metadata:
         name: mysql-data
