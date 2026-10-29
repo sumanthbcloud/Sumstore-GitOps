@@ -2,7 +2,7 @@ replicaCount: 1
 fullnameOverride: web
 image:
   repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/web
-  tag: 46fe2ea986fdcb6d8237a4bdb82d183cc2e9c0ea
+  tag: 3ccf1d4712ad2b7d34d61169fba6f8afcbf7762d
   pullPolicy: IfNotPresent
 containerPort:
   enabled: true
@@ -44,7 +44,6 @@ resources:
   limits:
     cpu: 250m
     memory: 128Mi
-
 extraContainers:
   - name: nginx-exporter
     image: nginx/nginx-prometheus-exporter:1.4.1
