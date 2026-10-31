@@ -2,7 +2,7 @@ replicaCount: 1
 fullnameOverride: web
 image:
   repository: 961544628309.dkr.ecr.us-east-1.amazonaws.com/sumstore/web
-  tag: 7df620d1f070aabace952113b48407c50d9635a5
+  tag: 26a3a2b76d6f0138ebea39ca01284c5ba6b56018
   pullPolicy: IfNotPresent
 containerPort:
   enabled: true
